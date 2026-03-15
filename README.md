@@ -1,7 +1,7 @@
-# Black LLab
+Black LLab
 Black LLab is a completely open source LLM orchestration framework designed for local and cloud environments. It provides enterprise grade memory management, intelligent routing, and advanced retrieval augmented generation. The architecture is built to maximize context efficiency while minimizing API costs and latency.
 
-# Core Architecture
+Core Architecture
 Prompt Evaluation and Dynamic Routing
 The system does not treat all prompts equally. Instead, it utilizes a multi layered pipeline to evaluate and route queries intelligently.
 
@@ -13,7 +13,7 @@ Complexity Grading: A background router grades each prompt on a 1 to 100 scale t
 
 Dynamic Routing: Based on the complexity score, the system directs the task to the most efficient model. Simple tasks are handled locally, while highly complex analytical requests trigger larger frontier models or System 2 agentic clusters.
 
-# Context and Memory Management
+Context and Memory Management
 Context windows are treated as a strict resource to prevent token bloat and AI hallucination.
 
 XML Isolation: Retrieved facts, web search results, and memory are isolated within strict XML boundaries. This prevents the model from confusing retrieved data with user instructions.
@@ -24,7 +24,7 @@ Adaptive Personas: The system dynamically injects system overrides based on prom
 
 Prompt Caching: For massive context blocks, the system applies ephemeral cache control tags to freeze context in memory and drastically reduce subsequent API costs.
 
-# The Multi Stage RAG Pipeline
+The Multi Stage RAG Pipeline
 The retrieval augmented generation pipeline blends semantic search with graph relations and agentic reasoning.
 
 Tabular and OCR Extraction: Document ingestion explicitly detects and reconstructs tables into strict Markdown. If a page lacks text, it defaults to a local optical character recognition engine to read the images.
@@ -37,7 +37,7 @@ Cross Encoder Re ranking: Retrieved chunks are aggressively re ranked using a lo
 
 Graph Retrieval: In the background, the system extracts entity relationship triples and maps them to a local graph. During chat, it matches the query to graph nodes and injects relational neighbors into the context window.
 
-# System Requirements
+System Requirements
 To run Black LLab effectively, your host machine requires the following infrastructure:
 
 Python 3.10+
@@ -46,7 +46,7 @@ Docker: Required for spawning secure OpenClaw agent sandboxes and web search con
 
 Ollama: Required for running local background models and local chat capabilities.
 
-# Installation and Setup
+Installation and Setup
 1. Clone the Repository
 
 Bash
@@ -63,7 +63,7 @@ playwright install chromium
 3. Docker and Web Search Initialization
 The system relies on Docker to isolate the OpenClaw agent and to run the local meta search engine. Please ensure Docker is installed and running on your system. For detailed instructions on setting up the OpenClaw Docker environment, please refer to the official documentation at https://docs.openclaw.ai/install/docker.
 
-# To initialize the local SearxNG web search container, run the following commands in your terminal. The second and third commands are critical; they explicitly unlock the JSON API format required by the Black LLab router.
+To initialize the local SearxNG web search container, run the following commands in your terminal. The second and third commands are critical; they explicitly unlock the JSON API format required by the Black LLab router.
 
 Bash
 docker run -d --name searxng -p 8080:8080 -e SEARXNG_BASE_URL=http://127.0.0.1:8080 searxng/searxng
