@@ -1,0 +1,33 @@
+# Environments & Secrets
+.env
+__pycache__/
+*.pyc
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Nexus / Black LLAB Databases & Cache
+nexus_cache/
+obsidian_graph.json
+budget.json
+sessions.json
+router_training_data.jsonl
+
+# Docker Workspaces & Sandboxes
+workspace/
+workspace_bg/
+.openclaw/
+.openclaw_bg/
+
+# Logs and Debugging
+*.log
+
+# IDEs / Editor Folders
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
