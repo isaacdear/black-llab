@@ -1607,7 +1607,7 @@ async def background_task_manager():
         # Check the document for new tasks every 15 seconds
         await asyncio.sleep(15)
 async def setup_docker_sandbox():
-    """Boots TWO Docker containers and locks the background one to the Local Giant."""
+    """Boots TWO Docker containers and securely sandboxes them from the host Mac."""
     print(">> [BOOTSTRAP] Refreshing OpenClaw Sandbox Containers...")
     
     cwd = os.getcwd()
@@ -1642,7 +1642,7 @@ async def setup_docker_sandbox():
         print(">> [BOOTSTRAP] ⚠️ Docker CLI not found. Agent features will be disabled.")
         return
 
-    # 1. Forcibly remove the old, dead containers (ADDED SEARXNG TO THIS LIST)
+    # 1. Forcibly remove the old, dead containers
     for name in ["openclaw-sandbox", "openclaw-bg-sandbox", "searxng"]:
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -1656,6 +1656,7 @@ async def setup_docker_sandbox():
             
     await asyncio.sleep(1) # Give the Docker daemon a second to breathe
 
+    # --- BOOT SEARXNG META-SEARCH ENGINE ---
     try:
         proc = await asyncio.create_subprocess_exec(
             docker_bin, "run", "-d", "--name", "searxng", "-p", "8080:8080",
@@ -1683,32 +1684,35 @@ async def setup_docker_sandbox():
     except Exception as e:
         print(f">> [BOOTSTRAP] ⚠️ SearxNG launch error: {e}")
 
-
-    # 2. Boot the Foreground Container (Dynamic Routing)
+    # 2. Boot the Foreground Container (SECURE SANDBOX)
     try:
         proc = await asyncio.create_subprocess_exec(
-            docker_bin, "run", "-d", "--name", "openclaw-sandbox", "--network", "host", "--entrypoint", "sh",
+            docker_bin, "run", "-d", "--name", "openclaw-sandbox", 
+            "--cpus=2.0", "-m", "2g", "--pids-limit", "100", "--security-opt", "no-new-privileges", # <--- SECURITY LIMITS
+            "--entrypoint", "sh",
             "-v", f"{dot_openclaw}:/home/node/.openclaw", "-v", f"{workspace}:/workspace",
             "ghcr.io/openclaw/openclaw", "-c", "sleep infinity",
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
         )
-        await proc.wait() 
+        await proc.wait()
     except Exception as e:
         print(f">> [BOOTSTRAP] ⚠️ Foreground launch error: {e}")
 
-    # 3. Boot the Background Container (Locked to Local)
+    # 3. Boot the Background Container (SECURE SANDBOX)
     try:
         proc = await asyncio.create_subprocess_exec(
-            docker_bin, "run", "-d", "--name", "openclaw-bg-sandbox", "--network", "host", "--entrypoint", "sh",
+            docker_bin, "run", "-d", "--name", "openclaw-bg-sandbox", 
+            "--cpus=2.0", "-m", "2g", "--pids-limit", "100", "--security-opt", "no-new-privileges", # <--- SECURITY LIMITS
+            "--entrypoint", "sh",
             "-v", f"{dot_openclaw_bg}:/home/node/.openclaw", "-v", f"{workspace_bg}:/workspace",
             "ghcr.io/openclaw/openclaw", "-c", "sleep infinity",
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
         )
-        await proc.wait() 
+        await proc.wait()
     except Exception as e:
         print(f">> [BOOTSTRAP] ⚠️ Background launch error: {e}")
         
-    await asyncio.sleep(1)
+    await asyncio.sleep(1) 
         
     # 4. FORCIBLY INJECT THE LOCAL GIANT CONFIG INTO THE BACKGROUND CONTAINER
     minified_bg_node = (
@@ -1725,21 +1729,20 @@ async def setup_docker_sandbox():
             docker_bin, "exec", "openclaw-bg-sandbox", "sh", "-lc", bg_setup_cmd,
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
         )
-        await proc.wait() 
-        print(">> [BOOTSTRAP] ✅ Dual OpenClaw Agents Online (Foreground & Locked BG).")
+        await proc.wait()
+        print(">> [BOOTSTRAP] ✅ Dual OpenClaw Agents Online (Secured & Sandboxed).")
     except Exception as e:
         print(f">> [BOOTSTRAP] ⚠️ Config injection error: {e}")
 
    # 5. INJECT THE SECURED WEB SURFER TOOL AND VISION TOOL INTO BOTH WORKSPACES
-    # We dynamically inject the server's global NEXUS_TOKEN so the agent can authenticate
     surfer_code = f"""import sys, urllib.request, urllib.parse, json
 if len(sys.argv) < 2:
     print("Usage: python web_surfer.py <URL>")
     sys.exit(1)
 url = sys.argv[1]
 try:
-    api_url = f"http://127.0.0.1:8000/v1/agent/read_url?url={{urllib.parse.quote(url)}}"
-    # Attach the Nexus Token to the request headers
+    # Changed 127.0.0.1 to host.docker.internal to bridge the isolated network!
+    api_url = f"http://host.docker.internal:8000/v1/agent/read_url?url={{urllib.parse.quote(url)}}"
     req = urllib.request.Request(api_url, headers={{"X-Nexus-Token": "{NEXUS_TOKEN}"}})
     with urllib.request.urlopen(req) as response:
         data = json.loads(response.read().decode('utf-8'))
@@ -1754,7 +1757,8 @@ if len(sys.argv) < 2:
     sys.exit(1)
 filename = sys.argv[1]
 try:
-    api_url = f"http://127.0.0.1:8000/v1/agent/vision?filename={{urllib.parse.quote(filename)}}"
+    # Changed 127.0.0.1 to host.docker.internal to bridge the isolated network!
+    api_url = f"http://host.docker.internal:8000/v1/agent/vision?filename={{urllib.parse.quote(filename)}}"
     req = urllib.request.Request(api_url, headers={{"X-Nexus-Token": "{NEXUS_TOKEN}"}})
     with urllib.request.urlopen(req) as response:
         data = json.loads(response.read().decode('utf-8'))
